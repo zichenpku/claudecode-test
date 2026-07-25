@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>🌾 星露谷物语 · 农场</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #0d0d0d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+  user-select: none;
+  overflow: hidden;
+}
+
+.game-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  background: #2c1810;
+  border-radius: 16px;
+  padding: 12px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.9), inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 2px solid #4a3420;
+}
+
+/* === TOP BAR === */
+.top-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: linear-gradient(180deg, #3d2317, #2c1810);
+  border-radius: 10px 10px 0 0;
+  border-bottom: 2px solid #4a3420;
+}
+.top-bar .game-title {
+  color: #ffd700;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+}
+.top-bar .stats {
+  display: flex;
+  gap: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #e8d5c0;
+}
+.top-bar .stats span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.top-bar .stats .stat-value {
+  color: #fff;
+}
+.top-bar .stats .money { color: #ffd700; }
+.top-bar .stats .season { color: #81c784; }
+.top-bar .stats .day { color: #90caf9; }
+
+/* === CANVAS === */
+#gameCanvas {
+  display: block;
+  background: #3a5a2a;
+  cursor: crosshair;
+  border-left: 2px solid #4a3420;
+  border-right: 2px solid #4a3420;
+}
+
+/* === BOTTOM BAR === */
+.bottom-bar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background: linear-gradient(0deg, #3d2317, #2c1810);
+  border-radius: 0 0 10px 10px;
+  border-top: 2px solid #4a3420;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.toolbar {
+  display: flex;
+  gap: 6px;
+}
+.tool-btn {
+  width: 48px;
+  height: 48px;
+  border: 2px solid #6d4c2a;
+  border-radius: 8px;
+  background: #4a3420;
+  color: #e8d5c0;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  line-height: 1.2;
+}
+.tool-btn .icon { font-size: 20px; }
+.tool-btn:hover {
+  background: #5d4030;
+  border-color: #8d6c4a;
+}
+.tool-btn.active {
+  background: #6d4c2a;
+  border-color: #ffd700;
+  box-shadow: 0 0 10px rgba(255,215,0,0.2);
+}
+.tool-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.action-btns {
+  display: flex;
+  gap: 8px;
+}
+.action-btns button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: #fff;
+}
+.action-btns button:hover { transform: translateY(-1px); }
+.btn-sleep {
+  background: #5c6bc0;
+}
+.btn-sleep:hover { background: #7986cb; }
+.btn-shop {
+  background: #f9a825;
+  color: #1a1a1a !important;
+}
+.btn-shop:hover { background: #fbc02d; }
+.btn-save {
+  background: #66bb6a;
+}
+.btn-save:hover { background: #81c784; }
+
+/* === TOOLTIP / STATUS === */
+.status-text {
+  color: #e8d5c0;
+  font-size: 12px;
+  padding: 4px 12px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  min-height: 20px;
+  min-width: 120px;
+  text-align: center;
+}
+
+/* === MODAL === */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+  background: linear-gradient(180deg, #3d2317, #2c1810);
+  border: 2px solid #6d4c2a;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 460px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #e8d5c0;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+}
+.modal h2 {
+  color: #ffd700;
+  margin-bottom: 16px;
+  text-align: center;
+  font-size: 20px;
+}
+.modal-close {
+  float: right;
+  background: none;
+  border: none;
+  color: #e8d5c0;
+  font-size: 22px;
+  cursor: pointer;
+}
+.modal-close:hover { color: #ff5252; }
+
+.shop-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 8px;
+  border: 1px solid #4a3420;
+}
+.shop-item .item-info {
+  display: flex;
+  flex-direction: column;
+}
+.shop-item .item-name { font-weight: 700; font-size: 15px; }
+.shop-item .item-desc { font-size: 12px; color: #a09080; }
+.shop-item .item-price { color: #ffd700; font-weight: 700; font-size: 14px; }
+.shop-item .item-owns { font-size: 12px; color: #81c784; }
+.shop-item button {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-buy { background: #66bb6a; color: #fff; }
+.btn-buy:hover { background: #81c784; }
+.btn-sell { background: #ef5350; color: #fff; }
+.btn-sell:hover { background: #e57373; }
+
+/* inventory grid inside shop */
+.inv-section {
+  margin-top: 16px;
+  border-top: 1px solid #4a3420;
+  padding-top: 12px;
+}
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-top: 8px;
+}
+.inv-cell {
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  padding: 8px 4px;
+  text-align: center;
+  font-size: 12px;
+  border: 1px solid #4a3420;
+}
+.inv-cell .count { color: #ffd700; font-weight: 700; }
+
+/* Energy bar */
+.energy-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: #1a1a1a;
+  border-radius: 4px;
+  margin-top: 2px;
+}
+.energy-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f44336, #ffeb3b, #4caf50);
+  border-radius: 4px;
+  transition: width 0.3s;
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+  .game-wrapper { padding: 6px; border-radius: 8px; }
+  .top-bar .stats { gap: 10px; font-size: 12px; }
+  .tool-btn { width: 40px; height: 40px; font-size: 10px; }
+  .tool-btn .icon { font-size: 16px; }
+  .action-btns button { padding: 6px 10px; font-size: 11px; }
+}
+</style>
+</head>
+<body>
+
+<div class="game-wrapper">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="game-title">🌾 星露谷物语 · 农场</div>
+    <div class="stats">
+      <span>🪙 <span class="stat-value money" id="moneyDisplay">500</span></span>
+      <span>🌿 <span class="stat-value season" id="seasonDisplay">春季</span></span>
+      <span>📅 第 <span class="stat-value day" id="dayDisplay">1</span> 天</span>
+      <span>⚡ <span class="stat-value" id="energyDisplay">270</span></span>
+    </div>
+  </div>
+
+  <!-- Canvas -->
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- Bottom Bar -->
+  <div class="bottom-bar">
+    <div class="toolbar" id="toolbar">
+      <button class="tool-btn active" data-tool="hoe" onclick="selectTool('hoe')">
+        <span class="icon">⛏️</span>耕地
+      </button>
+      <button class="tool-btn" data-tool="water" onclick="selectTool('water')">
+        <span class="icon">💧</span>浇水
+      </button>
+      <button class="tool-btn" data-tool="seeds" onclick="selectTool('seeds')">
+        <span class="icon">🌱</span>播种
+      </button>
+      <button class="tool-btn" data-tool="harvest" onclick="selectTool('harvest')">
+        <span class="icon">🧺</span>收获
+      </button>
+    </div>
+
+    <div class="status-text" id="statusText">选择工具，点击地图操作</div>
+
+    <div class="action-btns">
+      <button class="btn-shop" onclick="openShop()">🏪 商店</button>
+      <button class="btn-sleep" onclick="sleep()">🌙 睡觉</button>
+      <button class="btn-save" onclick="saveGame()">💾 存档</button>
+    </div>
+  </div>
+</div>
+
+<!-- Shop Modal -->
+<div class="modal-overlay" id="shopModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeShop()">✕</button>
+    <h2>🏪 皮埃尔的杂货店</h2>
+    <div id="shopContent"></div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+//  CONSTANTS
+// ============================================================
+const TILE = 32;
+const MAP_COLS = 50;
+const MAP_ROWS = 40;
+const VIEW_COLS = 25;  // visible tiles
+const VIEW_ROWS = 19;
+
+const T_GRASS   = 0;
+const T_WATER   = 1;
+const T_MOUNTAIN= 2;
+const T_FOREST  = 3;
+const T_TILLED  = 4;  // tilled soil, ready to plant
+const T_CROP    = 5;  // has a crop growing
+const T_PATH    = 6;
+
+const MAX_ENERGY = 270;
+
+const SEASONS = ['春季', '夏季', '秋季', '冬季'];
+const SEASON_CROPS = {
+  '春季': ['parsnip', 'potato', 'kale'],
+  '夏季': ['tomato', 'blueberry', 'corn'],
+  '秋季': ['pumpkin', 'wheat', 'cranberry'],
+  '冬季': []
+};
+
+// ============================================================
+//  CROP DEFINITIONS
+// ============================================================
+const CROPS = {
+  parsnip: {
+    name: '防风草', seedCost: 20, sellPrice: 35,
+    stages: 4, daysPerStage: 1,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#E6C84A'],
+    season: '春季'
+  },
+  potato: {
+    name: '土豆', seedCost: 50, sellPrice: 80,
+    stages: 5, daysPerStage: 1,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#A1887F','#8D6E63'],
+    season: '春季'
+  },
+  kale: {
+    name: '甘蓝', seedCost: 40, sellPrice: 70,
+    stages: 4, daysPerStage: 1,
+    colors: ['#558B2F','#689F38','#7CB342','#33691E'],
+    season: '春季'
+  },
+  tomato: {
+    name: '番茄', seedCost: 50, sellPrice: 60,
+    stages: 5, daysPerStage: 1,
+    regrows: true, regrowDays: 2,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#EF5350','#E53935'],
+    season: '夏季'
+  },
+  blueberry: {
+    name: '蓝莓', seedCost: 80, sellPrice: 50,
+    stages: 7, daysPerStage: 1,
+    regrows: true, regrowDays: 3,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#64B5F6','#42A5F5','#1E88E5','#1565C0'],
+    season: '夏季'
+  },
+  corn: {
+    name: '玉米', seedCost: 60, sellPrice: 50,
+    stages: 7, daysPerStage: 1,
+    regrows: true, regrowDays: 3,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#66BB6A','#FDD835','#F9A825','#F57F17'],
+    season: '夏季'    /* also grows in fall */
+  },
+  pumpkin: {
+    name: '南瓜', seedCost: 100, sellPrice: 320,
+    stages: 7, daysPerStage: 1,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#FFB74D','#FFA726','#FF9800','#E65100'],
+    season: '秋季'
+  },
+  wheat: {
+    name: '小麦', seedCost: 10, sellPrice: 25,
+    stages: 4, daysPerStage: 1,
+    colors: ['#7CB342','#9CCC65','#CDDC39','#FDD835'],
+    season: '秋季'
+  },
+  cranberry: {
+    name: '蔓越莓', seedCost: 70, sellPrice: 75,
+    stages: 5, daysPerStage: 1,
+    regrows: true, regrowDays: 2,
+    colors: ['#7CB342','#8BC34A','#9CCC65','#EF5350','#D32F2F'],
+    season: '秋季'
+  }
+};
+
+// ============================================================
+//  GAME STATE
+// ============================================================
+let map = [];
+let player = { x: 24, y: 18, moving: false, targetX: 24, targetY: 18, moveProgress: 1 };
+let money = 500;
+let energy = MAX_ENERGY;
+let day = 1;
+let seasonIdx = 0; // 0=spring,1=summer,2=fall,3=winter
+let inventory = { seeds: {}, crops: {} };
+const MAX_INVENTORY = 999;
+
+let selectedTool = 'hoe';
+let keys = {};
+let canvas, ctx;
+let camera = { x: 0, y: 0 };
+
+let statusTimeout = null;
+let shopOpen = false;
+
+// ============================================================
+//  MAP GENERATION
+// ============================================================
+function genMap() {
+  map = [];
+  for (let r = 0; r < MAP_ROWS; r++) {
+    map[r] = [];
+    for (let c = 0; c < MAP_COLS; c++) {
+      map[r][c] = { t: T_GRASS, crop: null, watered: false };
+    }
+  }
+
+  // Helper
+  const set = (r,c,type) => {
+    if (r>=0&&r<MAP_ROWS&&c>=0&&c<MAP_COLS) map[r][c].t = type;
+  };
+  const is = (r,c,type) => r>=0&&r<MAP_ROWS&&c>=0&&c<MAP_COLS&&map[r][c].t===type;
+
+  // --- Mountains (top-left region) ---
+  for (let r = 1; r < 10; r++)
+    for (let c = 1; c < 12; c++)
+      if (Math.random() < 0.65) set(r,c,T_MOUNTAIN);
+  // Smooth mountains
+  for (let i=0;i<5;i++) {
+    for (let r=1;r<10;r++) for (let c=1;c<12;c++) {
+      let n=0; for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) if (is(r+dr,c+dc,T_MOUNTAIN)) n++;
+      if (n>=4 && Math.random()<0.4) set(r,c,T_MOUNTAIN);
+    }
+  }
+  // Mountain edges
+  for (let r=1;r<11;r++) for (let c=1;c<13;c++) {
+    if (is(r,c,T_MOUNTAIN)) continue;
+    let adj = 0; for (let dr=-1;dr<=1;dr++) for (let dc=-1;dc<=1;dc++) if (is(r+dr,c+dc,T_MOUNTAIN)) adj++;
+    if (adj>=2 && Math.random()<0.3) set(r,c,T_MOUNTAIN);
+  }
+
+  // --- River (top-right to bottom-left) ---
+  let rr = 2, cc = 38;
+  for (let i=0; i<50; i++) {
+    if (rr>=0&&rr<MAP_ROWS&&cc>=0&&cc<MAP_COLS) set(rr,cc,T_WATER);
+    // Widen river a bit
+    if (Math.random()<0.4) { if (rr+1<MAP_ROWS) set(rr+1,cc,T_WATER); }
+    if (Math.random()<0.4) { if (rr-1>=0) set(rr-1,cc,T_WATER); }
+    // Flow toward bottom-left
+    if (Math.random()<0.55) rr++; else cc--;
+    if (rr>=MAP_ROWS || cc<0) break;
+  }
+
+  // --- Lake (bottom-right) ---
+  for (let r=28; r<38; r++) for (let c=35; c<48; c++)
+    if (Math.random()<0.55) set(r,c,T_WATER);
+  for (let i=0;i<3;i++) {
+    for (let r=27;r<39;r++) for (let c=34;c<49;c++) {
+      if (is(r,c,T_WATER)) { let n=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(is(r+dr,c+dc,T_WATER))n++;if(n<2&&Math.random()<0.3)set(r,c,T_WATER); }
+      else { let n=0;for(let dr=-1;dr<=1;dr++)for(let dc=-1;dc<=1;dc++)if(is(r+dr,c+dc,T_WATER))n++;if(n>=3&&Math.random()<0.4)set(r,c,T_WATER); }
+    }
+  }
+
+  // --- Forest patches ---
+  const forestCenters = [[5,25],[12,38],[20,5],[30,10],[8,15],[35,30]];
+  for (const [fr,fc] of forestCenters) {
+    for (let r=fr-3; r<=fr+3; r++) for (let c=fc-3; c<=fc+3; c++) {
+      const dist = Math.hypot(r-fr, c-fc);
+      if (dist<3.5 && Math.random()<0.6) set(r,c,T_FOREST);
+    }
+  }
+
+  // --- Path / farm area (center) ---
+  for (let r=13; r<23; r++) for (let c=18; c<30; c++) {
+    if (map[r][c].t === T_GRASS && Math.random()<0.3) set(r,c,T_PATH);
+  }
+
+  // --- Starting pre-tilled soil ---
+  for (let r=15; r<21; r++) for (let c=21; c<27; c++) {
+    if (map[r][c].t === T_GRASS || map[r][c].t === T_PATH) set(r,c,T_TILLED);
+  }
+
+  // --- Farmhouse (a small 2x2 structure) ---
+  set(17, 18, T_PATH); set(17, 19, T_PATH);
+  set(18, 18, T_PATH); set(18, 19, T_PATH);
+}
+
+// ============================================================
+//  RENDERER
+// ============================================================
+const TERRAIN_COLORS = {
+  [T_GRASS]:    {base:'#6B8E23', var1:'#7CB342', var2:'#5D8030'},
+  [T_WATER]:    {base:'#2980B9', var1:'#3498DB', var2:'#1A6FA0'},
+  [T_MOUNTAIN]: {base:'#7F8C8D', var1:'#95A5A6', var2:'#6B7273'},
+  [T_FOREST]:   {base:'#2E7D32', var1:'#388E3C', var2:'#1B5E20'},
+  [T_TILLED]:   {base:'#5D4037', var1:'#6D4C41', var2:'#4E342E'},
+  [T_CROP]:     {base:'#5D4037', var1:'#6D4C41', var2:'#4E342E'},
+  [T_PATH]:     {base:'#A1887F', var1:'#BCAAA4', var2:'#8D6E63'},
+};
+
+function getTileColor(tile) {
+  const tc = TERRAIN_COLORS[tile.t];
+  if (!tc) return '#666';
+  const r = Math.random(); // deterministic-ish
+  if (r < 0.33) return tc.base;
+  if (r < 0.66) return tc.var1;
+  return tc.var2;
+}
+
+// Deterministic "random" color based on position
+function getTileColorDet(tile, r, c) {
+  const tc = TERRAIN_COLORS[tile.t];
+  if (!tc) return '#666';
+  // Use position as seed
+  const val = ((r * 17 + c * 31) % 3 + 3) % 3;
+  if (val === 0) return tc.base;
+  if (val === 1) return tc.var1;
+  return tc.var2;
+}
+
+function drawTile(ctx2, r, c, screenX, screenY, tile, tick) {
+  // Terrain base
+  ctx2.fillStyle = getTileColorDet(tile, r, c);
+  ctx2.fillRect(screenX, screenY, TILE, TILE);
+
+  // Terrain details
+  if (tile.t === T_GRASS) {
+    // Grass tufts
+    const h = ((r * 13 + c * 7) % 5 + 5) % 5;
+    for (let i=0;i<h;i++) {
+      const gx = screenX + (((r*7+c*13+i*23)%20+20)%20) + 4;
+      const gy = screenY + (((r*11+c*17+i*31)%20+20)%20) + 4;
+      ctx2.fillStyle = '#5D8030';
+      ctx2.fillRect(gx, gy, 2, 4);
+    }
+    // Small flowers/dots
+    if (((r*31 + c*17) % 7 + 7) % 7 === 0) {
+      ctx2.fillStyle = '#FDD835';
+      ctx2.beginPath();
+      ctx2.arc(screenX+(((r*13+c*7)%20+20)%20), screenY+(((r*7+c*13)%20+20)%20), 2, 0, Math.PI*2);
+      ctx2.fill();
+    }
+  }
+  else if (tile.t === T_WATER) {
+    // Animated wave
+    const wave = Math.sin(tick * 0.02 + r * 1.5 + c * 2.3) * 0.3 + 0.5;
+    ctx2.fillStyle = `rgba(200,230,255,${wave*0.15})`;
+    ctx2.fillRect(screenX + 2, screenY + 6, TILE-4, 2);
+    ctx2.fillRect(screenX + 4, screenY + 18, TILE-8, 2);
+    // Edge foam
+    for (let dr=-1;dr<=1;dr+=2) for (let dc=-1;dc<=1;dc+=2) {
+      if (r+dr>=0&&r+dr<MAP_ROWS&&c+dc>=0&&c+dc<MAP_COLS&&map[r+dr]?.[c+dc]?.t!==T_WATER) {
+        ctx2.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx2.fillRect(screenX+2, screenY+2, TILE-4, TILE-4);
+      }
+    }
+  }
+  else if (tile.t === T_MOUNTAIN) {
+    // Peak highlight
+    ctx2.fillStyle = '#B0BEC5';
+    ctx2.beginPath();
+    ctx2.moveTo(screenX + TILE/2, screenY + 4);
+    ctx2.lineTo(screenX + TILE-4, screenY + TILE-4);
+    ctx2.lineTo(screenX + 4, screenY + TILE-4);
+    ctx2.closePath();
+    ctx2.fill();
+    // Snow cap
+    ctx2.fillStyle = '#ECEFF1';
+    ctx2.beginPath();
+    ctx2.moveTo(screenX + TILE/2, screenY + 4);
+    ctx2.lineTo(screenX + TILE/2 + 8, screenY + 14);
+    ctx2.lineTo(screenX + TILE/2 - 8, screenY + 14);
+    ctx2.closePath();
+    ctx2.fill();
+  }
+  else if (tile.t === T_FOREST) {
+    // Tree trunk
+    ctx2.fillStyle = '#5D4037';
+    ctx2.fillRect(screenX + 13, screenY + 18, 6, 12);
+    // Tree crown
+    ctx2.fillStyle = ((r*7+c*13)%3+3)%3===0?'#388E3C':'#2E7D32';
+    ctx2.beginPath();
+    ctx2.arc(screenX + 16, screenY + 12, 10, 0, Math.PI*2);
+    ctx2.fill();
+    ctx2.fillStyle = '#43A047';
+    ctx2.beginPath();
+    ctx2.arc(screenX + 12, screenY + 10, 6, 0, Math.PI*2);
+    ctx2.fill();
+  }
+  else if (tile.t === T_TILLED) {
+    // Furrow lines
+    ctx2.fillStyle = '#4E342E';
+    ctx2.fillRect(screenX + 4, screenY + 8, TILE-8, 2);
+    ctx2.fillRect(screenX + 4, screenY + 16, TILE-8, 2);
+    ctx2.fillRect(screenX + 4, screenY + 24, TILE-8, 2);
+    if (tile.watered) {
+      ctx2.fillStyle = 'rgba(100,150,255,0.15)';
+      ctx2.fillRect(screenX+2, screenY+2, TILE-4, TILE-4);
+    }
+  }
+  else if (tile.t === T_PATH) {
+    // Path stones
+    ctx2.fillStyle = '#8D6E63';
+    const sx = ((r*7+c*13)%12+12)%12;
+    const sy = ((r*13+c*7)%12+12)%12;
+    ctx2.beginPath();
+    ctx2.ellipse(screenX+8+sx/2, screenY+8+sy/2, 6, 4, 0, 0, Math.PI*2);
+    ctx2.fill();
+  }
+
+  // --- Crop rendering ---
+  if (tile.t === T_CROP && tile.crop) {
+    const crop = tile.crop;
+    const cdef = CROPS[crop.type];
+    if (cdef) {
+      const stage = Math.min(crop.stage, cdef.stages - 1);
+      const color = cdef.colors[stage] || '#7CB342';
+      const progress = stage / (cdef.stages - 1);
+
+      // Crop sprite based on growth
+      const cx = screenX + TILE/2;
+      const cy = screenY + TILE/2;
+
+      if (progress < 0.2) {
+        // Tiny sprout
+        ctx2.fillStyle = '#4CAF50';
+        ctx2.fillRect(cx-2, cy+4, 4, 8);
+        ctx2.fillRect(cx-4, cy+2, 8, 4);
+      } else if (progress < 0.4) {
+        // Small plant
+        ctx2.fillStyle = color;
+        ctx2.fillRect(cx-6, cy-2, 12, 14);
+        ctx2.fillStyle = '#4CAF50';
+        ctx2.fillRect(cx-8, cy, 16, 4);
+      } else if (progress < 0.6) {
+        // Medium bush
+        ctx2.fillStyle = color;
+        ctx2.beginPath();
+        ctx2.arc(cx, cy+2, 12, 0, Math.PI*2);
+        ctx2.fill();
+        ctx2.fillStyle = '#388E3C';
+        ctx2.beginPath();
+        ctx2.arc(cx-2, cy, 8, 0, Math.PI*2);
+        ctx2.fill();
+      } else if (progress < 0.8) {
+        // Flowering / fruiting
+        ctx2.fillStyle = color;
+        ctx2.beginPath();
+        ctx2.arc(cx, cy, 13, 0, Math.PI*2);
+        ctx2.fill();
+        ctx2.fillStyle = '#2E7D32';
+        ctx2.beginPath();
+        ctx2.arc(cx-3, cy-2, 9, 0, Math.PI*2);
+        ctx2.fill();
+        // Fruit/flowers
+        if ((tick % 60) < 30) {
+          ctx2.fillStyle = crop.regrows ? '#FFEB3B' : '#FF9800';
+          ctx2.beginPath();
+          ctx2.arc(cx+6, cy-4, 3, 0, Math.PI*2);
+          ctx2.fill();
+        }
+      } else {
+        // Mature - ready to harvest!
+        ctx2.fillStyle = color;
+        ctx2.beginPath();
+        ctx2.arc(cx, cy, 14, 0, Math.PI*2);
+        ctx2.fill();
+        ctx2.fillStyle = '#1B5E20';
+        ctx2.beginPath();
+        ctx2.arc(cx-3, cy-2, 10, 0, Math.PI*2);
+        ctx2.fill();
+        // Sparkle ready indicator
+        if ((tick % 40) < 20) {
+          ctx2.fillStyle = '#FFD700';
+          ctx2.beginPath();
+          ctx2.arc(cx + 8, cy - 6, 3, 0, Math.PI*2);
+          ctx2.fill();
+          ctx2.fillStyle = '#FFF';
+          ctx2.beginPath();
+          ctx2.arc(cx + 7, cy - 7, 1.5, 0, Math.PI*2);
+          ctx2.fill();
+        }
+      }
+
+      // Watered indicator
+      if (tile.watered) {
+        ctx2.fillStyle = 'rgba(100,180,255,0.12)';
+        ctx2.fillRect(screenX, screenY, TILE, TILE);
+      }
+    }
+  }
+}
+
+// ============================================================
+//  PLAYER RENDER
+// ============================================================
+let playerAnimTick = 0;
+function drawPlayer(ctx2, screenX, screenY, tick, moving) {
+  const sway = moving ? Math.sin(tick * 0.15) * 2 : 0;
+
+  // Shadow
+  ctx2.fillStyle = 'rgba(0,0,0,0.2)';
+  ctx2.beginPath();
+  ctx2.ellipse(screenX + 16, screenY + 30, 8, 4, 0, 0, Math.PI*2);
+  ctx2.fill();
+
+  // Body (overalls)
+  ctx2.fillStyle = '#5C6BC0';
+  ctx2.fillRect(screenX + 8, screenY + 14, 16, 14);
+
+  // Shirt
+  ctx2.fillStyle = '#EF5350';
+  ctx2.fillRect(screenX + 10, screenY + 14, 12, 8);
+
+  // Head
+  ctx2.fillStyle = '#F5CBA7';
+  ctx2.beginPath();
+  ctx2.arc(screenX + 16, screenY + 10, 8, 0, Math.PI*2);
+  ctx2.fill();
+
+  // Hat
+  ctx2.fillStyle = '#8D6E63';
+  ctx2.fillRect(screenX + 8, screenY + 2, 16, 4);
+  ctx2.fillRect(screenX + 10, screenY - 2 + sway, 12, 6);
+
+  // Eyes
+  ctx2.fillStyle = '#1a1a1a';
+  ctx2.fillRect(screenX + 12, screenY + 8, 2, 2);
+  ctx2.fillRect(screenX + 18, screenY + 8, 2, 2);
+
+  // Legs
+  ctx2.fillStyle = '#37474F';
+  const walkOffset = moving ? Math.sin(tick * 0.15) * 2 : 0;
+  ctx2.fillRect(screenX + 8, screenY + 28, 6, 4);
+  ctx2.fillRect(screenX + 18, screenY + 28, 6, 4);
+  if (moving) {
+    ctx2.fillRect(screenX + 8 - walkOffset*0.5, screenY + 28, 6, 4);
+    ctx2.fillRect(screenX + 18 + walkOffset*0.5, screenY + 28, 6, 4);
+  }
+
+  // Tool indicator
+  if (selectedTool === 'hoe') {
+    ctx2.fillStyle = '#795548';
+    ctx2.fillRect(screenX + 24, screenY + 12, 3, 16);
+    ctx2.fillRect(screenX + 22, screenY + 26, 7, 4);
+  } else if (selectedTool === 'water') {
+    ctx2.fillStyle = '#42A5F5';
+    ctx2.fillRect(screenX + 24, screenY + 10, 8, 12);
+    ctx2.fillStyle = '#BBDEFB';
+    ctx2.fillRect(screenX + 26, screenY + 14, 4, 4);
+  } else if (selectedTool === 'seeds') {
+    ctx2.fillStyle = '#66BB6A';
+    ctx2.fillRect(screenX + 24, screenY + 14, 6, 6);
+    ctx2.fillRect(screenX + 23, screenY + 12, 8, 2);
+  }
+}
+
+// ============================================================
+//  MAIN RENDER
+// ============================================================
+function render(tick) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const camX = camera.x;
+  const camY = camera.y;
+
+  // Determine visible range
+  const startCol = Math.max(0, Math.floor(camX / TILE));
+  const startRow = Math.max(0, Math.floor(camY / TILE));
+  const endCol = Math.min(MAP_COLS, startCol + VIEW_COLS + 1);
+  const endRow = Math.min(MAP_ROWS, startRow + VIEW_ROWS + 1);
+
+  // Draw tiles
+  for (let r = startRow; r < endRow; r++) {
+    for (let c = startCol; c < endCol; c++) {
+      const tile = map[r][c];
+      const sx = c * TILE - camX;
+      const sy = r * TILE - camY;
+      drawTile(ctx, r, c, sx, sy, tile, tick);
+    }
+  }
+
+  // Draw player
+  const pScreenX = player.x * TILE - camX;
+  const pScreenY = player.y * TILE - camY;
+  const isMoving = player.moveProgress < 1;
+  drawPlayer(ctx, pScreenX, pScreenY, tick, isMoving);
+
+  // Cursor highlight
+  const cursorTile = getCursorTile();
+  if (cursorTile) {
+    const csx = cursorTile.c * TILE - camX;
+    const csy = cursorTile.r * TILE - camY;
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(csx, csy, TILE, TILE);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(csx, csy, TILE, TILE);
+  }
+
+  // Water animation overlay
+  for (let r = startRow; r < endRow; r++) {
+    for (let c = startCol; c < endCol; c++) {
+      if (map[r][c].t === T_WATER) {
+        const sx = c * TILE - camX;
+        const sy = r * TILE - camY;
+        const wave = Math.sin(tick * 0.03 + r * 1.5 + c * 2.3) * 0.3 + 0.5;
+        ctx.fillStyle = `rgba(255,255,255,${wave*0.06})`;
+        ctx.fillRect(sx, sy, TILE, TILE);
+      }
+    }
+  }
+
+  // Update UI
+  updateUI();
+}
+
+function getCursorTile() {
+  // Mouse position relative to canvas
+  if (mouseX === undefined) return null;
+  const camX = camera.x;
+  const camY = camera.y;
+  const col = Math.floor((mouseX + camX) / TILE);
+  const row = Math.floor((mouseY + camY) / TILE);
+  if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) return null;
+  const dist = Math.abs(row - player.y) + Math.abs(col - player.x);
+  if (dist > 2) return null; // range check
+  return { r: row, c: col };
+}
+
+let mouseX, mouseY;
+
+// ============================================================
+//  CAMERA
+// ============================================================
+function updateCamera() {
+  const targetCamX = player.x * TILE - (canvas.width / 2 - TILE / 2);
+  const targetCamY = player.y * TILE - (canvas.height / 2 - TILE / 2);
+  camera.x += (targetCamX - camera.x) * 0.1;
+  camera.y += (targetCamY - camera.y) * 0.1;
+
+  // Clamp
+  camera.x = Math.max(0, Math.min(MAP_COLS * TILE - canvas.width, camera.x));
+  camera.y = Math.max(0, Math.min(MAP_ROWS * TILE - canvas.height, camera.y));
+  if (canvas.width > MAP_COLS * TILE) camera.x = (MAP_COLS * TILE - canvas.width) / 2;
+  if (canvas.height > MAP_ROWS * TILE) camera.y = (MAP_ROWS * TILE - canvas.height) / 2;
+}
+
+// ============================================================
+//  PLAYER MOVEMENT
+// ============================================================
+let playerMoving = false;
+let moveQueue = [];
+
+function tryMove(dx, dy) {
+  if (player.moveProgress < 1) return; // still moving
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+  if (nx < 0 || nx >= MAP_COLS || ny < 0 || ny >= MAP_ROWS) return;
+  const tile = map[ny][nx];
+  if (tile.t === T_WATER || tile.t === T_MOUNTAIN || tile.t === T_FOREST) return;
+
+  player.x = nx;
+  player.y = ny;
+  player.moveProgress = 0;
+  updateCamera();
+}
+
+function updatePlayerMovement() {
+  if (player.moveProgress < 1) {
+    player.moveProgress += 0.12;
+    if (player.moveProgress > 1) player.moveProgress = 1;
+    render(animTick);
+  }
+}
+
+// ============================================================
+//  FARMING ACTIONS
+// ============================================================
+function doAction(r, c) {
+  if (energy <= 0) {
+    setStatus('⚡ 体力不足！睡觉恢复体力');
+    return;
+  }
+  const tile = map[r][c];
+
+  switch (selectedTool) {
+    case 'hoe':
+      if (tile.t === T_GRASS || tile.t === T_PATH) {
+        map[r][c].t = T_TILLED;
+        map[r][c].crop = null;
+        map[r][c].watered = false;
+        energy = Math.max(0, energy - 4);
+        setStatus('⛏️ 开垦了耕地');
+        render(animTick);
+        checkEnergy();
+      } else if (tile.t === T_TILLED || tile.t === T_CROP) {
+        setStatus('⚠️ 这里已经是耕地了');
+      } else {
+        setStatus('⚠️ 这里无法开垦');
+      }
+      break;
+
+    case 'water':
+      if (tile.t === T_TILLED || tile.t === T_CROP) {
+        if (!tile.watered) {
+          tile.watered = true;
+          energy = Math.max(0, energy - 2);
+          setStatus('💧 浇了水');
+          render(animTick);
+          checkEnergy();
+        } else {
+          setStatus('⚠️ 已经浇过水了');
+        }
+      } else {
+        setStatus('⚠️ 这里不需要浇水');
+      }
+      break;
+
+    case 'seeds':
+      if (tile.t === T_TILLED && !tile.crop) {
+        const seasonName = SEASONS[seasonIdx];
+        const available = SEASON_CROPS[seasonName] || [];
+        // Find the first seed the player has
+        let chosenType = null;
+        for (const cropType of available) {
+          if ((inventory.seeds[cropType] || 0) > 0) {
+            chosenType = cropType;
+            break;
+          }
+        }
+        if (!chosenType) {
+          setStatus('⚠️ 没有这个季节的种子！去商店买一些吧');
+          return;
+        }
+        const cdef = CROPS[chosenType];
+        // Check season
+        if (cdef.season !== seasonName && !(chosenType === 'corn' && seasonName === '秋季')) {
+          setStatus(`⚠️ ${cdef.name} 不能在 ${seasonName} 种植`);
+          return;
+        }
+        inventory.seeds[chosenType]--;
+        if (inventory.seeds[chosenType] <= 0) delete inventory.seeds[chosenType];
+        tile.t = T_CROP;
+        tile.crop = { type: chosenType, stage: 0, watered: false, regrows: !!CROPS[chosenType].regrows };
+        tile.watered = false;
+        energy = Math.max(0, energy - 3);
+        setStatus(`🌱 种下了 ${cdef.name}`);
+        render(animTick);
+        checkEnergy();
+      } else if (tile.t !== T_TILLED) {
+        setStatus('⚠️ 需要先耕地才能播种');
+      } else {
+        setStatus('⚠️ 这里已经有作物了');
+      }
+      break;
+
+    case 'harvest':
+      if (tile.t === T_CROP && tile.crop) {
+        const cdef = CROPS[tile.crop.type];
+        if (!cdef) return;
+        if (tile.crop.stage >= cdef.stages - 1) {
+          // Harvest!
+          const count = 1 + (Math.random() < 0.2 ? 1 : 0); // bonus chance
+          inventory.crops[tile.crop.type] = (inventory.crops[tile.crop.type] || 0) + count;
+          energy = Math.max(0, energy - 2);
+
+          if (tile.crop.regrows) {
+            // Regrow: reset to stage just before mature, keep watered
+            tile.crop.stage = Math.max(0, cdef.stages - 3);
+            tile.crop.watered = false;
+            setStatus(`🧺 收获了 ${count} 个 ${cdef.name}！还会再长`);
+          } else {
+            // Remove crop, back to tilled
+            tile.t = T_TILLED;
+            tile.crop = null;
+            tile.watered = false;
+            setStatus(`🧺 收获了 ${count} 个 ${cdef.name}！`);
+          }
+          render(animTick);
+          checkEnergy();
+        } else {
+          setStatus(`⏳ 还没成熟 (${tile.crop.stage+1}/${cdef.stages})`);
+        }
+      } else {
+        setStatus('⚠️ 这里没有可收获的作物');
+      }
+      break;
+  }
+}
+
+function checkEnergy() {
+  if (energy <= 0) {
+    setStatus('😰 体力透支了！点击"睡觉"恢复体力');
+  }
+}
+
+// ============================================================
+//  TIME / SLEEP SYSTEM
+// ============================================================
+function sleep() {
+  if (player.moveProgress < 1) return;
+  // Advance day
+  day++;
+  if (day > 28) {
+    day = 1;
+    seasonIdx = (seasonIdx + 1) % 4;
+    if (seasonIdx === 0) {
+      // New year
+    }
+  }
+  energy = MAX_ENERGY;
+
+  // Grow crops
+  for (let r = 0; r < MAP_ROWS; r++) {
+    for (let c = 0; c < MAP_COLS; c++) {
+      const tile = map[r][c];
+      if (tile.t === T_CROP && tile.crop) {
+        const cdef = CROPS[tile.crop.type];
+        if (!cdef) continue;
+        // Check if watered (or if it rained)
+        if (tile.watered) {
+          tile.crop.stage++;
+          if (tile.crop.stage >= cdef.stages) {
+            tile.crop.stage = cdef.stages - 1; // cap at mature
+          }
+        }
+        tile.watered = false; // reset for next day
+      }
+      if (tile.t === T_TILLED) {
+        tile.watered = false;
+      }
+    }
+  }
+
+  // Winter kills all crops
+  if (seasonIdx === 3) {
+    for (let r = 0; r < MAP_ROWS; r++) {
+      for (let c = 0; c < MAP_COLS; c++) {
+        const tile = map[r][c];
+        if (tile.t === T_CROP) {
+          const cdef = CROPS[tile.crop?.type];
+          tile.t = T_TILLED;
+          tile.crop = null;
+          tile.watered = false;
+          setStatus(`❄️ 冬天来了，作物都冻死了`);
+        }
+      }
+    }
+  }
+
+  updateCamera();
+  render(animTick);
+  setStatus(`🌙 第 ${day} 天开始了！体力已恢复`);
+
+  // Auto-save
+  saveGame();
+  setTimeout(() => setStatus(`💾 已自动存档 | 🌙 第 ${day} 天`), 1500);
+}
+
+// ============================================================
+//  SHOP SYSTEM
+// ============================================================
+function openShop() {
+  shopOpen = true;
+  document.getElementById('shopModal').classList.add('open');
+  renderShop();
+}
+
+function closeShop() {
+  shopOpen = false;
+  document.getElementById('shopModal').classList.remove('open');
+}
+
+function renderShop() {
+  const el = document.getElementById('shopContent');
+  const seasonName = SEASONS[seasonIdx];
+  let html = `<p style="margin-bottom:12px;color:#a09080;">季节: ${seasonName}</p>`;
+
+  // Seeds for sale
+  html += `<h3 style="margin-bottom:8px;color:#81c784;">🌱 种子</h3>`;
+  for (const [key, crop] of Object.entries(CROPS)) {
+    if (crop.season !== seasonName && !(key === 'corn' && (seasonName === '春季'||seasonName==='秋季'))) continue;
+    const ownSeeds = inventory.seeds[key] || 0;
+    html += `
+      <div class="shop-item">
+        <div class="item-info">
+          <span class="item-name">${crop.name} 种子</span>
+          <span class="item-desc">${crop.stages}天成熟${crop.regrows ? ' · 可多次收获' : ''}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="item-price">🪙 ${crop.seedCost}</span>
+          <span class="item-owns">x${ownSeeds}</span>
+          <button class="btn-buy" onclick="buySeed('${key}')">购买</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // Inventory - sell crops
+  const cropEntries = Object.entries(inventory.crops);
+  if (cropEntries.length > 0) {
+    html += `<div class="inv-section"><h3 style="margin-bottom:8px;color:#ffd700;">🧺 我的农产品（点击出售）</h3>`;
+    for (const [type, count] of cropEntries) {
+      const cdef = CROPS[type];
+      if (!cdef) continue;
+      html += `
+        <div class="shop-item">
+          <div class="item-info">
+            <span class="item-name">${cdef.name}</span>
+            <span class="item-desc">可售 🪙 ${cdef.sellPrice}/个</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="color:#e8d5c0;font-weight:700;">x${count}</span>
+            <button class="btn-sell" onclick="sellCrop('${type}')">出售</button>
+          </div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+  } else {
+    html += `<div class="inv-section"><p style="color:#6d4c2a;">还没有收获的作物</p></div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+function buySeed(type) {
+  const cdef = CROPS[type];
+  if (!cdef) return;
+  if (money < cdef.seedCost) {
+    setStatus('⚠️ 钱不够！');
+    return;
+  }
+  money -= cdef.seedCost;
+  inventory.seeds[type] = (inventory.seeds[type] || 0) + 1;
+  setStatus(`🛒 购买了 ${cdef.name} 种子`);
+  renderShop();
+  render(animTick);
+}
+
+function sellCrop(type) {
+  const cdef = CROPS[type];
+  if (!cdef || !inventory.crops[type]) return;
+  const count = inventory.crops[type];
+  const total = count * cdef.sellPrice;
+  money += total;
+  delete inventory.crops[type];
+  setStatus(`💰 出售了 ${count} 个 ${cdef.name}，获得 ${total} 金币`);
+  renderShop();
+  render(animTick);
+}
+
+// ============================================================
+//  TOOL SELECTION
+// ============================================================
+function selectTool(tool) {
+  selectedTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.tool-btn[data-tool="${tool}"]`).classList.add('active');
+
+  const toolNames = { hoe:'⛏️ 耕地', water:'💧 浇水', seeds:'🌱 播种', harvest:'🧺 收获' };
+  setStatus(`${toolNames[tool] || tool} — 点击地图上的格子使用`);
+}
+
+// ============================================================
+//  UI HELPERS
+// ============================================================
+function setStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+  if (statusTimeout) clearTimeout(statusTimeout);
+  statusTimeout = setTimeout(() => {
+    if (!shopOpen) {
+      const t = selectedTool;
+      const names = { hoe:'耕地', water:'浇水', seeds:'播种', harvest:'收获' };
+      document.getElementById('statusText').textContent = `当前: ${names[t] || t} | 点击格子操作`;
+    }
+  }, 3000);
+}
+
+function updateUI() {
+  document.getElementById('moneyDisplay').textContent = money;
+  document.getElementById('seasonDisplay').textContent = SEASONS[seasonIdx];
+  document.getElementById('dayDisplay').textContent = day;
+  document.getElementById('energyDisplay').textContent = energy;
+}
+
+// ============================================================
+//  SAVE / LOAD
+// ============================================================
+function saveGame() {
+  const data = {
+    map: map,
+    player: { x: player.x, y: player.y },
+    money, energy, day, seasonIdx, inventory,
+    version: 1
+  };
+  try {
+    localStorage.setItem('stardew_farm_save', JSON.stringify(data));
+    setStatus('💾 游戏已保存');
+  } catch(e) {
+    setStatus('⚠️ 保存失败: ' + e.message);
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('stardew_farm_save');
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data.map || !data.map.length) return false;
+
+    // Restore
+    map = data.map;
+    player.x = data.player.x || 24;
+    player.y = data.player.y || 18;
+    money = data.money ?? 500;
+    energy = data.energy ?? MAX_ENERGY;
+    day = data.day ?? 1;
+    seasonIdx = data.seasonIdx ?? 0;
+    inventory = data.inventory || { seeds: {}, crops: {} };
+
+    return true;
+  } catch(e) {
+    console.warn('Load failed:', e);
+    return false;
+  }
+}
+
+function deleteSave() {
+  localStorage.removeItem('stardew_farm_save');
+  setStatus('🗑️ 存档已删除');
+}
+
+// ============================================================
+//  INPUT
+// ============================================================
+document.addEventListener('keydown', (e) => {
+  keys[e.key] = true;
+
+  if (shopOpen && e.key === 'Escape') { closeShop(); return; }
+  if (e.key === 'Escape') { return; }
+
+  // Number keys for tools
+  if (e.key === '1') selectTool('hoe');
+  if (e.key === '2') selectTool('water');
+  if (e.key === '3') selectTool('seeds');
+  if (e.key === '4') selectTool('harvest');
+
+  // Shop
+  if (e.key === 'e' || e.key === 'E') {
+    if (shopOpen) closeShop(); else openShop();
+  }
+
+  // Sleep
+  if (e.key === 'z' || e.key === 'Z') sleep();
+});
+
+document.addEventListener('keyup', (e) => {
+  keys[e.key] = false;
+});
+
+// Mouse
+canvas = document.getElementById('gameCanvas');
+canvas.addEventListener('mousemove', (e) => {
+  const rect = canvas.getBoundingClientRect();
+  mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+  mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+});
+
+canvas.addEventListener('click', (e) => {
+  if (player.moveProgress < 1) return;
+  const tile = getCursorTile();
+  if (!tile) return;
+  if (tile.r === player.y && tile.c === player.x) {
+    // Click on self - act on tile in front of player
+    // Actually, let them act on the tile they're standing on
+    doAction(tile.r, tile.c);
+  } else {
+    doAction(tile.r, tile.c);
+  }
+});
+
+canvas.addEventListener('mouseleave', () => {
+  mouseX = undefined;
+  mouseY = undefined;
+});
+
+// Touch support
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const touch = e.touches[0];
+  mouseX = (touch.clientX - rect.left) * (canvas.width / rect.width);
+  mouseY = (touch.clientY - rect.top) * (canvas.height / rect.height);
+
+  if (player.moveProgress < 1) return;
+  const tile = getCursorTile();
+  if (!tile) return;
+  doAction(tile.r, tile.c);
+});
+
+// ============================================================
+//  GAME LOOP
+// ============================================================
+let animTick = 0;
+let moveKeys = {};
+
+function processInput() {
+  // WASD / Arrow
+  if (player.moveProgress < 1) return;
+
+  let dx = 0, dy = 0;
+  if (keys['w'] || keys['W'] || keys['ArrowUp']) dy = -1;
+  else if (keys['s'] || keys['S'] || keys['ArrowDown']) dy = 1;
+  else if (keys['a'] || keys['A'] || keys['ArrowLeft']) dx = -1;
+  else if (keys['d'] || keys['D'] || keys['ArrowRight']) dx = 1;
+
+  if (dx !== 0 || dy !== 0) {
+    tryMove(dx, dy);
+  }
+}
+
+function gameLoop() {
+  animTick++;
+  processInput();
+  updatePlayerMovement();
+  updateCamera();
+
+  if (!shopOpen) {
+    render(animTick);
+  }
+
+  requestAnimationFrame(gameLoop);
+}
+
+// ============================================================
+//  INIT
+// ============================================================
+function init() {
+  canvas = document.getElementById('gameCanvas');
+  ctx = canvas.getContext('2d');
+
+  // Size canvas
+  const maxW = Math.min(window.innerWidth - 40, 850);
+  const maxH = Math.min(window.innerHeight - 160, 620);
+  canvas.width = Math.min(maxW, VIEW_COLS * TILE);
+  canvas.height = Math.min(maxH, VIEW_ROWS * TILE);
+
+  // Load or generate
+  if (!loadGame()) {
+    genMap();
+    player = { x: 24, y: 18, moving: false, targetX: 24, targetY: 18, moveProgress: 1 };
+  }
+
+  updateCamera();
+  selectTool('hoe');
+  render(0);
+  setStatus('🌾 欢迎来到星露谷！选择工具，点击地图开始耕作');
+
+  // Auto-save every 30 seconds
+  setInterval(() => {
+    saveGame();
+  }, 30000);
+
+  gameLoop();
+}
+
+// Window resize
+window.addEventListener('resize', () => {
+  const maxW = Math.min(window.innerWidth - 40, 850);
+  const maxH = Math.min(window.innerHeight - 160, 620);
+  canvas.width = Math.min(maxW, VIEW_COLS * TILE);
+  canvas.height = Math.min(maxH, VIEW_ROWS * TILE);
+  updateCamera();
+});
+
+// Start
+init();
+</script>
+</body>
+</html>
